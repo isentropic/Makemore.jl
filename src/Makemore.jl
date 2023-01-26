@@ -1,5 +1,5 @@
 module Makemore
-
-# Write your package code here.
+using Flux
+include("bigram.jl")
 
 end
