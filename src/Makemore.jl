@@ -1,6 +1,11 @@
 module Makemore
 using Flux
 using Random
+using StatsBase
+
+# Special tokens need to start with 1 as it is used for array indexing
+@enum SpecialToken starttoken = 1 endtoken = 2
+nreservedtokens = length(instances(SpecialToken))
 
 struct Dataset
     words::Vector{String}
@@ -14,7 +19,7 @@ Base.length(dataset::Dataset) = length(dataset.words)
 function Dataset(words, chars, max_word_length)
     stoi = Dict{Char,Integer}()
     for (i, c) in enumerate(chars)
-        stoi[c] = i + 1
+        stoi[c] = i + nreservedtokens
     end
     itos = Dict{Integer,Char}()
     for (k, v) in stoi
@@ -25,21 +30,32 @@ function Dataset(words, chars, max_word_length)
 end
 
 encode(dataset::Dataset, word) = [dataset.stoi[c] for c in word]
-decode(dataset::Dataset, indices) = String([dataset.itos[ix] for ix in indices])
+
+function decode(dataset::Dataset, indices)
+    # Decode while ignoring SpecialToken
+    output = Char[]
+    for i in indices
+        if i in keys(dataset.itos)
+            push!(output, dataset.itos[i])
+        end
+    end
+    return String(output)
+end
 
 function Base.getindex(dataset::Dataset, index)
     word = dataset.words[index]
     encodedword = encode(dataset, word)
 
-    x = ones(Int, dataset.max_word_length + 1)
-    y = ones(Int, dataset.max_word_length + 1)
+    x = fill(Int(endtoken), dataset.max_word_length + nreservedtokens)
+    y = fill(Int(endtoken), dataset.max_word_length + nreservedtokens)
 
     # Each word is encoded into same length arrays
     # with zeros for start and end locations
-    x[2:1+length(encodedword)] .= encodedword
+    x[1] = Int(starttoken)
+    x[nreservedtokens:1+length(encodedword)] .= encodedword
 
     y[1:length(encodedword)] .= encodedword
-    y[length(encodedword)+1:end] .= -1
+    y[length(encodedword)+1:end] .= Int(endtoken)
 
     # Prediction (y) is 1 index shifted
     return x, y
@@ -74,7 +90,7 @@ end
 
 Base.@kwdef struct Config
     blocksize::Integer # length of the input to predict next char (longer -> more information)
-    vocabsize::Integer # number of unique letters + 1
+    vocabsize::Integer # number of unique letters + specialtokens
     nlayer::Integer = 4
     nembedding::Integer = 64
     nembedding2::Integer = 64
