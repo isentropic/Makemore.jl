@@ -141,17 +141,23 @@ my_log
 # ╔═╡ a28f4631-5e89-4f7d-8a1b-6530d904972d
 plot([mean(l.losses) for l in my_log], )
 
+# ╔═╡ b8042f43-cc26-44cc-a6a3-e1133158b5cf
+my_log[end].losses[end]
+
 # ╔═╡ f565059f-be94-48f1-84ed-1427e1139e21
 Flux.softmax(model.logits * M.Flux.onehot(1, 1:28))
 
 # ╔═╡ 4be5df73-326b-4201-b4b6-9fef40c5a96c
-X[:, 1]
+model(X[:, 1])
 
 # ╔═╡ 0646ad44-5e03-438f-9638-d2375553491c
 Y[:, 1]
 
+# ╔═╡ 66d9a767-187b-453f-9b4a-3cf245781b2e
+model(X[:, 1])
+
 # ╔═╡ f511b718-a2ca-4aac-9cb9-ec4b4ebe32db
-X[:, 1]
+model(X[:, 1:3])
 
 # ╔═╡ 761e6f0c-4e79-44d7-8db0-246c998feb08
 X[end, 1]
@@ -187,9 +193,11 @@ M.getsamples(model, train)
 # ╠═03f4172a-07de-4647-a380-b5eba634d36b
 # ╠═d696249f-9f36-41cb-b680-cb549bc5e4b3
 # ╠═a28f4631-5e89-4f7d-8a1b-6530d904972d
+# ╠═b8042f43-cc26-44cc-a6a3-e1133158b5cf
 # ╠═f565059f-be94-48f1-84ed-1427e1139e21
 # ╠═4be5df73-326b-4201-b4b6-9fef40c5a96c
 # ╠═0646ad44-5e03-438f-9638-d2375553491c
+# ╠═66d9a767-187b-453f-9b4a-3cf245781b2e
 # ╠═f511b718-a2ca-4aac-9cb9-ec4b4ebe32db
 # ╠═761e6f0c-4e79-44d7-8db0-246c998feb08
 # ╠═1f43f6eb-1b2c-4304-83a3-8fe7d065256c

@@ -13,12 +13,57 @@ function Bigram(config)
     return Bigram(config, n, zeros(n, n))
 end
 
-# Forward pass, basically a lookup
+# Forward pass, basically just a lookup
 (m::Bigram)(index) = m.logits[:, index]
 
-function loss(m::Bigram, real, predicted)
-    return Flux.Losses.logitcrossentropy(predicted, real)
+
+Base.@kwdef struct MLP
+    config::Config
+    blocksize::Int64
+    vocabsize::Int64
+    embedding::Embedding
+    mlp::Chain
 end
+
+Flux.@functor MLP (embedding, mlp)
+
+function MLP(config)
+    emb = Embedding(config.vocabsize, config.nembedding)
+    mlp = Chain(
+        Dense(config.blocksize * config.nembedding, config.nembedding2, tanh),
+        Dense(config.nembedding2, config.vocabsize)
+    )
+    return MLP(config, config.blocksize, config.vocabsize, emb, mlp)
+end
+
+function zeropadshift(emb, units)
+	if ndims(emb) == 3
+		zeropadding = Flux.fill_like(emb, Int(starttoken), (size(emb)[1], units, size(emb)[end]))
+	else
+		zeropadding = Flux.fill_like(emb, Int(starttoken), (size(emb)[1], units))
+	end
+	shifted = circshift(emb, (0, units))[:, (units+1):end, :]
+	return hcat(zeropadding, shifted)
+end
+
+function (m::MLP)(index)
+    emb = m.embedding(index)
+    x = vcat([zeropadshift(emb, i) for i in 0:m.blocksize-1]...)
+    logits = m.mlp(x)
+    return logits
+end
+
+
+function loss(model, x, y)
+	real = Flux.onehotbatch(y, 1:model.config.vocabsize, 1)
+	Flux.Losses.logitbinarycrossentropy(model(x), real)
+end
+
+function loss(pred, y)
+	real = M.Flux.onehotbatch(y, 1:28, 1)
+	M.Flux.Losses.logitbinarycrossentropy(pred, real)
+end
+
 
 function generate(model, indices, maxnewtokens; tempertaure=1.0)
     for _ in 1:maxnewtokens

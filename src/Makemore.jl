@@ -5,7 +5,7 @@ using StatsBase
 
 # Special tokens need to start with 1 as it is used for array indexing
 @enum SpecialToken starttoken = 1 endtoken = 2
-nreservedtokens = length(instances(SpecialToken))
+const nreservedtokens = length(instances(SpecialToken))
 
 struct Dataset
     words::Vector{String}
@@ -14,6 +14,7 @@ struct Dataset
     stoi::Dict{Char,Integer}
     itos::Dict{Integer,Char}
 end
+
 Base.length(dataset::Dataset) = length(dataset.words)
 
 function Dataset(words, chars, max_word_length)
