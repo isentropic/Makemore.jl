@@ -7,87 +7,9 @@ using StatsBase
 @enum SpecialToken starttoken = 1 endtoken = 2
 const nreservedtokens = length(instances(SpecialToken))
 
-struct Dataset
-    words::Vector{String}
-    chars::Vector{Char}
-    max_word_length::Integer
-    stoi::Dict{Char,Integer}
-    itos::Dict{Integer,Char}
-end
-
-Base.length(dataset::Dataset) = length(dataset.words)
-
-function Dataset(words, chars, max_word_length)
-    stoi = Dict{Char,Integer}()
-    for (i, c) in enumerate(chars)
-        stoi[c] = i + nreservedtokens
-    end
-    itos = Dict{Integer,Char}()
-    for (k, v) in stoi
-        itos[v] = k
-    end
-
-    return Dataset(words, chars, max_word_length, stoi, itos)
-end
-
-encode(dataset::Dataset, word) = [dataset.stoi[c] for c in word]
-
-function decode(dataset::Dataset, indices)
-    # Decode while ignoring SpecialToken
-    output = Char[]
-    for i in indices
-        if i in keys(dataset.itos)
-            push!(output, dataset.itos[i])
-        end
-    end
-    return String(output)
-end
-
-function Base.getindex(dataset::Dataset, index)
-    word = dataset.words[index]
-    encodedword = encode(dataset, word)
-
-    x = fill(Int(endtoken), dataset.max_word_length + nreservedtokens)
-    y = fill(Int(endtoken), dataset.max_word_length + nreservedtokens)
-
-    # Each word is encoded into same length arrays
-    # with zeros for start and end locations
-    x[1] = Int(starttoken)
-    x[nreservedtokens:1+length(encodedword)] .= encodedword
-
-    y[1:length(encodedword)] .= encodedword
-    y[length(encodedword)+1:end] .= Int(endtoken)
-
-    # Prediction (y) is 1 index shifted
-    return x, y
-end
-
-function loaddatasets(filename, testsplit=0.1, toshuffle=true)
-    lines = map(strip, filename |> open |> readlines)
-    uniquechars = Set{Char}()
-    for line in lines
-        for c in line
-            push!(uniquechars, c)
-        end
-    end
-
-    maxwordlength = 0
-    for word in lines
-        maxwordlength = max(maxwordlength, length(word))
-    end
-
-    toshuffle && shuffle!(lines)
-
-    testcut = floor(Int, length(lines) * testsplit)
-    trainlines = lines[begin:end-testcut-1]
-    testlines = lines[end-testcut:end]
-
-    sortedchars = sort(collect(uniquechars))
-    train_dataset = Dataset(trainlines, sortedchars, maxwordlength)
-    test_dataset = Dataset(testlines, sortedchars, maxwordlength)
-
-    return train_dataset, test_dataset
-end
+include("data.jl")
+include("bigram.jl")
+include("mlp.jl")
 
 Base.@kwdef struct Config
     blocksize::Integer # length of the input to predict next char (longer -> more information)
@@ -98,5 +20,45 @@ Base.@kwdef struct Config
     nhead::Integer = 4
 end
 
-include("bigram.jl")
+function loss(model, x, y)
+    real = Flux.onehotbatch(y, 1:model.config.vocabsize, 1)
+    Flux.Losses.logitbinarycrossentropy(model(x), real)
+end
+
+function loss(pred, y)
+    real = Flux.onehotbatch(y, 1:28, 1)
+    Flux.Losses.logitbinarycrossentropy(pred, real)
+end
+
+
+function generate(model, indices, maxnewtokens; temperature=1.0)
+    if length(indices) < model.blocksize
+        indices = vcat(fill(Int(starttoken), model.blocksize - length(indices) + 1), indices)
+    end
+    for _ in 1:maxnewtokens
+        logits = model(indices[end-model.blocksize:end])[:, end] # only last is needed for bigram
+        if ndims(logits) == 3
+            logits = logits[:, :, 1]
+        end
+        probs = Flux.softmax(logits, dims=1)
+        nextletter = sample(Weights(probs))
+
+        indices = vcat(indices, nextletter)
+    end
+
+    return indices
+end
+
+
+function getsamples(model, dataset, num=10)
+    samples = []
+    for _ in 1:num
+        start = [Int(starttoken),]
+        indices = generate(model, start, model.config.vocabsize * 2)
+
+        push!(samples, decode(dataset, indices))
+    end
+    return samples
+end
+
 end
