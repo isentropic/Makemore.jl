@@ -1,4 +1,5 @@
 module Makemore
+
 using Flux
 using Random
 using StatsBase
@@ -8,9 +9,9 @@ using StatsBase
 const nreservedtokens = length(instances(SpecialToken))
 
 include("data.jl")
-include("bigram.jl")
-include("mlp.jl")
 
+
+# Models
 Base.@kwdef struct Config
     blocksize::Integer # length of the input to predict next char (longer -> more information)
     vocabsize::Integer # number of unique letters + specialtokens
@@ -20,16 +21,61 @@ Base.@kwdef struct Config
     nhead::Integer = 4
 end
 
+include("bigram.jl")
+include("mlp.jl")
+
 function loss(model, x, y)
     real = Flux.onehotbatch(y, 1:model.config.vocabsize, 1)
-    Flux.Losses.logitbinarycrossentropy(model(x), real)
+    return Flux.Losses.logitbinarycrossentropy(model(x), real)
 end
 
 function loss(pred, y)
-    real = Flux.onehotbatch(y, 1:28, 1)
-    Flux.Losses.logitbinarycrossentropy(pred, real)
+    real = Flux.onehotbatch(y, 1:size(pred)[1], 1)
+    return Flux.Losses.logitbinarycrossentropy(pred, real)
 end
 
+function train_model!(model, train_dataset, test_dataset)
+    my_log = []
+    opt_state = Flux.setup(Flux.Adam(), model)
+    train_loader = get_dataloader(train_dataset)
+    for epoch in 1:20
+        losses = Float32[]
+        for (x, y) in train_loader
+
+            val, grads = Flux.withgradient(model) do m
+                # Any code inside here is differentiated.
+                # Evaluation of the model and loss must be inside!
+                result = m(x)
+                loss(result, y)
+            end
+
+            # Save the loss from the forward pass. (Done outside of gradient.)
+            push!(losses, val)
+
+            # Detect loss of Inf or NaN. Print a warning, and then skip update!
+            if !isfinite(val)
+                @warn "loss is $val on epoch $epoch" epoch
+                continue
+            end
+
+            Flux.update!(opt_state, model, grads[1])
+        end
+
+        # # Compute some accuracy, and save details as a NamedTuple
+        # acc = my_accuracy(model, train_set)
+        push!(my_log, (; losses))
+
+        # # Stop training when some criterion is reached
+        # if  acc > 0.95
+        #   println("stopping after $epoch epochs")
+        #   break
+        # end
+
+    end
+
+
+    return model
+end
 
 function generate(model, indices, maxnewtokens; temperature=1.0)
     if length(indices) < model.blocksize
@@ -48,7 +94,6 @@ function generate(model, indices, maxnewtokens; temperature=1.0)
 
     return indices
 end
-
 
 function getsamples(model, dataset, num=10)
     samples = []

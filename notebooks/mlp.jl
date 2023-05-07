@@ -27,7 +27,7 @@ import Makemore as M
 const Flux = M.Flux
 
 # ╔═╡ bfd18072-6105-4bbf-b11f-b729581cc084
-test, train = M.loaddatasets("../names.txt")
+train, test = M.loaddatasets("../names.txt")
 
 # ╔═╡ d4950e3e-599b-4e86-9ea3-f4f0a774003e
 begin
@@ -35,27 +35,8 @@ begin
 	model = M.MLP(config)
 end
 
-# ╔═╡ 90394249-e0d2-4964-bdc5-cdb87c3ca5ff
-begin
-	X = []
-	Y = []
-	
-	for i in eachindex(train.words)
-		x, y = train[i]
-		push!(X, x)
-		push!(Y, y)
-	end
-
-	X = hcat(X...)
-	Y = hcat(Y...)
-train_loader = M.Flux.DataLoader((X, Y), batchsize = 32)
-end
-
-# ╔═╡ 8f361530-6f86-44ca-9b5c-49aae3cce3f5
-function loss(pred, y)
-	real = M.Flux.onehotbatch(y, 1:size(pred)[1], 1)
-	M.Flux.Losses.logitbinarycrossentropy(pred, real)
-end
+# ╔═╡ d18cf387-dc03-4c77-9e6d-ae5db56f93de
+train_loader = M.get_dataloader(train)
 
 # ╔═╡ 3fcc15b2-de39-48de-a202-a52637596cb6
 repeat(model.embedding([Int(M.starttoken)]), 1, 0)
@@ -75,7 +56,7 @@ begin
 	      # Any code inside here is differentiated.
 	      # Evaluation of the model and loss must be inside!
 	      result = m(x)
-	      loss(result, y)
+	      M.loss(result, y)
 	    end
 	
 	    # Save the loss from the forward pass. (Done outside of gradient.)
@@ -116,7 +97,7 @@ my_log[end].losses[end]
 
 
 # ╔═╡ 90953fc0-edd8-4e73-973b-09e3f823637d
-M.getsamples(model, train, 100)
+M.getsamples(model, train, 20)
 
 # ╔═╡ Cell order:
 # ╠═ecaa4b38-e2bd-11ed-3531-87982cbbf375
@@ -125,8 +106,7 @@ M.getsamples(model, train, 100)
 # ╠═e76beb40-c24d-4ffd-a0ea-19e8e8b512a6
 # ╠═bfd18072-6105-4bbf-b11f-b729581cc084
 # ╠═d4950e3e-599b-4e86-9ea3-f4f0a774003e
-# ╠═90394249-e0d2-4964-bdc5-cdb87c3ca5ff
-# ╠═8f361530-6f86-44ca-9b5c-49aae3cce3f5
+# ╠═d18cf387-dc03-4c77-9e6d-ae5db56f93de
 # ╠═3fcc15b2-de39-48de-a202-a52637596cb6
 # ╠═3ea0763b-2595-425a-973a-a3d5563f1303
 # ╠═067ba152-d290-4e3a-a8fa-32292c94a966

@@ -80,7 +80,7 @@ function loaddatasets(filename, testsplit=0.1, toshuffle=true)
     return train_dataset, test_dataset
 end
 
-function get_dataloader(dataset)
+function get_dataloader(dataset, batchsize=32)
     X = []
     Y = []
 
@@ -92,6 +92,6 @@ function get_dataloader(dataset)
 
     X = hcat(X...)
     Y = hcat(Y...)
-    train_loader = Flux.DataLoader((X, Y), batchsize=32)
+    train_loader = Flux.DataLoader((X, Y), batchsize=batchsize)
     return train_loader
 end
