@@ -34,14 +34,30 @@ function loss(pred, y)
     return Flux.Losses.logitbinarycrossentropy(pred, real)
 end
 
-function train_model!(model, train_dataset, test_dataset)
-    my_log = []
+function evaluate(model, dataset, maxbatches=nothing)
+    dataloader = get_dataloader(dataset)
+    losses = Float32[]
+    i = 0
+    for (x, y) in dataloader
+        ŷ = model(x)
+        ℓ = loss(ŷ, y)
+        push!(losses, ℓ)
+        if maxbatches !== nothing && i > maxbatches
+            break
+        end
+        i += 1
+    end
+    return mean(losses)
+end
+
+function train_model!(model, train_dataset, test_dataset, maxepocs=100)
+    log = []
     opt_state = Flux.setup(Flux.Adam(), model)
     train_loader = get_dataloader(train_dataset)
-    for epoch in 1:20
+
+    for epoch in 1:maxepocs
         losses = Float32[]
         for (x, y) in train_loader
-
             val, grads = Flux.withgradient(model) do m
                 # Any code inside here is differentiated.
                 # Evaluation of the model and loss must be inside!
@@ -51,30 +67,25 @@ function train_model!(model, train_dataset, test_dataset)
 
             # Save the loss from the forward pass. (Done outside of gradient.)
             push!(losses, val)
-
-            # Detect loss of Inf or NaN. Print a warning, and then skip update!
-            if !isfinite(val)
-                @warn "loss is $val on epoch $epoch" epoch
-                continue
-            end
-
             Flux.update!(opt_state, model, grads[1])
         end
 
+        trainloss = mean(losses)
+        testloss = evaluate(model, test_dataset,)
+        println("epoch: $epoch, trainloss: $trainloss, testloss: $testloss")
         # # Compute some accuracy, and save details as a NamedTuple
         # acc = my_accuracy(model, train_set)
-        push!(my_log, (; losses))
+        push!(log, (; trainloss, testloss))
 
-        # # Stop training when some criterion is reached
-        # if  acc > 0.95
-        #   println("stopping after $epoch epochs")
-        #   break
-        # end
+        if length(log) >= 3 && issorted(l.testloss for l in log[end-2:end])
+            println("Early stopping: testloss is increasing")
+            break
+        end
 
     end
 
 
-    return model
+    return log
 end
 
 function generate(model, indices, maxnewtokens; temperature=1.0)
@@ -95,13 +106,34 @@ function generate(model, indices, maxnewtokens; temperature=1.0)
     return indices
 end
 
-function getsamples(model, dataset, num=10)
+function getsamples(model, traindataset, testdataset, num=10)
     samples = []
-    for _ in 1:num
+    existingwords = Set{String}()
+    for data in (traindataset, testdataset)
+        for word in data.words
+            push!(existingwords, word)
+        end
+    end
+
+    generated = 0
+    maxiters = 1e6
+    iter = 0
+    while generated < num
         start = [Int(starttoken),]
         indices = generate(model, start, model.config.vocabsize * 2)
+        newword = decode(traindataset, indices)
+        iter += 1
+        if iter > maxiters
+            @error "Max iters at generation reached"
+            break
+        end
 
-        push!(samples, decode(dataset, indices))
+        if newword ∉ existingwords
+            push!(samples, newword)
+            generated += 1
+        else
+            continue
+        end
     end
     return samples
 end
