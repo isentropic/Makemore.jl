@@ -10,7 +10,6 @@ const nreservedtokens = length(instances(SpecialToken))
 
 include("data.jl")
 
-
 # Models
 Base.@kwdef struct Config
     blocksize::Integer # length of the input to predict next char (longer -> more information)
@@ -23,6 +22,7 @@ end
 
 include("bigram.jl")
 include("mlp.jl")
+include("rnn.jl")
 
 function loss(model, x, y)
     real = Flux.onehotbatch(y, 1:model.config.vocabsize, 1)
