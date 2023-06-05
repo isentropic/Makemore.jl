@@ -38,6 +38,9 @@ x[:, 1]
 # ╔═╡ 694dcd66-bbdd-4c28-a1ce-aa4320cb34c6
 size(x)
 
+# ╔═╡ 6cfc0f3c-3a3e-4422-b38a-6b1099d742e7
+model(x)
+
 # ╔═╡ ac446c8c-a933-44e7-a4cb-e8d996dade02
 model.wte(x)
 
@@ -50,4 +53,5 @@ model.wte(x)
 # ╠═233f6cbe-7ab7-4083-b7a7-5e3912e19ded
 # ╠═40acf1ee-f311-4a5c-847d-7f04b571c48a
 # ╠═694dcd66-bbdd-4c28-a1ce-aa4320cb34c6
+# ╠═6cfc0f3c-3a3e-4422-b38a-6b1099d742e7
 # ╠═ac446c8c-a933-44e7-a4cb-e8d996dade02

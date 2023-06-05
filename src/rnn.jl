@@ -10,41 +10,104 @@ function RNNCell(config)
 end
 
 function (m::RNNCell)(x, h)
-    xh = hcat([x, h])
-    ht = tanh(m.xh2h(xh))
+    xh = vcat(x, h)
+    ht = Flux.tanh.(m.xh2h(xh))
     return ht
 end
 
+Flux.@functor RNNCell (xh2h,)
+
 Base.@kwdef struct GRUCell
     config::Config
-    xh2h::Dense
+    xh2z::Dense
+    xh2r::Dense
+    xh2hbar::Dense
+end
+
+Flux.@functor GRUCell (xh2z, xh2r, xh2har)
+
+function GRUCell(config)
+    xh2z = Dense(config.nembedding + config.nembedding2, config.nembedding2)
+    xh2r = Dense(config.nembedding + config.nembedding2, config.nembedding2)
+    xh2hbar = Dense(config.nembedding + config.nembedding2, config.nembedding2)
+    return GRUCell(config, xh2z, xh2r, xh2hbar)
+end
+
+function (m::GRUCell)(x, hprev)
+    xh = vcat(x, hprev)
+    r = Flux.sigmoid.(m.xh2r(xh))
+    hprev_reset = r .* hprev
+
+    xhr = vcat(x, hprev_reset)
+    hbar = Flux.tanh.(m.xh2hbar(xhr))
+
+    z = Flux.sigmoid.(m.xh2z(xh))
+    ht = @. (1 - z) * hprev + z * hbar
+    return ht
 end
 
 Base.@kwdef struct RNN{T<:Integer}
     blocksize::T
     vocabsize::T
-    start::Any
+    start::Matrix{Float32}
     wte::Embedding
     cell::Union{RNNCell,GRUCell}
     lmhead::Dense
+    config::Config
 end
 
-function RNN(config)
+function RNN(config, celltype="rnn")
     emb = Embedding(config.vocabsize, config.nembedding)
+    cell = if celltype == "rnn"
+        RNNCell(config)
+    elseif celltype == "gru"
+        GRUCell(config)
+    else
+        @error("unsupported cell")
+    end
     return RNN(
         config.blocksize,
         config.vocabsize,
-        zeros(1, config.nembedding2)
+        zeros(Float32, config.nembedding2, 1),
         emb,
         RNNCell(config),
-        Dense(config.nembedding2, config.vocabsize)
+        Dense(config.nembedding2, config.vocabsize),
+        config
     )
 end
 
-Flux.@functor RNNCell (xh2h,)
-Flux.@functor RNN (cell,)
+Flux.@functor RNN (wte, cell, lmhead,)
+# Flux.@functor RNN (wte, cell, lmhead, start)
 
 function (m::RNN)(index)
-    emb = m.embedding(index)
+    emb = m.wte(index) # (n_emb, t, b) opposite to torch
     t, b = size(index)
+    # Somebody will make this better (better to avoid copying)
+    hprev = hcat([m.start for i = 1:b]...)
+    hiddens = Flux.Zygote.Buffer(emb, m.cell.config.nembedding2, t, b)
+    for i in 1:t
+        xt = emb[:, i, :]
+        ht = m.cell(xt, hprev)
+        hprev = ht
+        hiddens[:, i, :] = ht
+    end
+    hidden = copy(hiddens) # t, n_emb, b 
+    logits = m.lmhead(hidden)
+    # @show size(hidden), size(logits)
+    return logits
+end
+
+function generate(model::RNN, indices, maxnewtokens; temperature=1.0)
+    # @TODO support temperature sampling
+    # RNNs do not have `blocksize`` making it easier to sample from
+    for _ in 1:maxnewtokens
+        indices = Flux.unsqueeze(indices, 2)
+        logits = model(indices)
+        probs = Flux.softmax(logits[:, end, 1])
+        nextletter = sample(Weights(probs))
+
+        indices = vcat(indices[:, 1], nextletter)
+    end
+
+    return indices
 end

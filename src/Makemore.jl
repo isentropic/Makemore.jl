@@ -89,6 +89,7 @@ function train_model!(model, train_dataset, test_dataset, maxepocs=100)
 end
 
 function generate(model, indices, maxnewtokens; temperature=1.0)
+    # @TODO support temperature sampling
     if length(indices) < model.blocksize
         indices = vcat(fill(Int(starttoken), model.blocksize - length(indices) + 1), indices)
     end
