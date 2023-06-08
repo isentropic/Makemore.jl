@@ -11,7 +11,7 @@ model = M.RNN(config)
 train_loader = M.get_dataloader(train)
 
 config = M.Config(blocksize=3, vocabsize=length(train.chars) + 2)
-model = M.RNN(config, "rnn")
+model = M.RNN(config, "gru")
 
 x, y = first(train_loader)
 

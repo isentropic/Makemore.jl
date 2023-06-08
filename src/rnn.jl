@@ -2,7 +2,7 @@ Base.@kwdef struct RNNCell
     config::Config
     xh2h::Dense
 end
-
+Flux.@functor RNNCell (xh2h,)
 
 function RNNCell(config)
     xh2h = Dense(config.nembedding + config.nembedding2, config.nembedding2)
@@ -15,15 +15,12 @@ function (m::RNNCell)(x, h)
     return ht
 end
 
-Flux.@functor RNNCell (xh2h,)
-
 Base.@kwdef struct GRUCell
     config::Config
     xh2z::Dense
     xh2r::Dense
     xh2hbar::Dense
 end
-
 Flux.@functor GRUCell (xh2z, xh2r, xh2har)
 
 function GRUCell(config)
@@ -55,6 +52,7 @@ Base.@kwdef struct RNN{T<:Integer}
     lmhead::Dense
     config::Config
 end
+Flux.@functor RNN (wte, cell, lmhead,)
 
 function RNN(config, celltype="rnn")
     emb = Embedding(config.vocabsize, config.nembedding)
@@ -75,9 +73,10 @@ function RNN(config, celltype="rnn")
         config
     )
 end
+# Flux.@functor RNN (wte, cell, lmhead, start) including start causes Flux
+# error, help needed.
+# Luckily including start as a trainable param is not necessary
 
-Flux.@functor RNN (wte, cell, lmhead,)
-# Flux.@functor RNN (wte, cell, lmhead, start)
 
 function (m::RNN)(index)
     emb = m.wte(index) # (n_emb, t, b) opposite to torch
@@ -91,7 +90,7 @@ function (m::RNN)(index)
         hprev = ht
         hiddens[:, i, :] = ht
     end
-    hidden = copy(hiddens) # t, n_emb, b 
+    hidden = copy(hiddens) # t, n_emb, b
     logits = m.lmhead(hidden)
     # @show size(hidden), size(logits)
     return logits
