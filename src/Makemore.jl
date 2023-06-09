@@ -23,8 +23,9 @@ end
 include("bigram.jl")
 include("mlp.jl")
 include("rnn.jl")
-include("gpt.jl")
+# include("gpt.jl")
 include("bow.jl")
+include("transformer.jl")
 
 function loss(model, x, y)
     real = Flux.onehotbatch(y, 1:model.config.vocabsize, 1)

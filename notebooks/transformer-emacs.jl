@@ -7,7 +7,7 @@ const Flux = M.Flux
 train, test = M.loaddatasets("../names.txt")
 
 config = M.Config(blocksize=3, vocabsize=length(train.chars) + 2)
-model = M.RNN(config)
+model = M.BoW
 train_loader = M.get_dataloader(train)
 
 x, y = first(train_loader)
