@@ -75,8 +75,6 @@ function train_model!(model, train_dataset, test_dataset, maxepocs=100)
         trainloss = mean(losses)
         testloss = evaluate(model, test_dataset,)
         println("epoch: $epoch, trainloss: $trainloss, testloss: $testloss")
-        # # Compute some accuracy, and save details as a NamedTuple
-        # acc = my_accuracy(model, train_set)
         push!(log, (; trainloss, testloss))
 
         if length(log) >= 3 && issorted(l.testloss for l in log[end-2:end])

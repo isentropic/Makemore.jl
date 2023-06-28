@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# https://github.com/karpathy/makemore
 """
 you give this script some words (one per line) and it will generate more things like it.
 uses super state of the art Transformer AI tech
@@ -284,7 +284,6 @@ class BoW(nn.Module):
         return self.block_size
 
     def forward(self, idx, targets=None):
-
         device = idx.device
         b, t = idx.size()
         assert (
@@ -451,7 +450,6 @@ class MLP(nn.Module):
         return self.block_size
 
     def forward(self, idx, targets=None):
-
         # gather the word embeddings of the previous 3 words
         embs = []
         for k in range(self.block_size):
@@ -493,7 +491,6 @@ class Bigram(nn.Module):
         return 1  # this model only needs one previous character to predict the next
 
     def forward(self, idx, targets=None):
-
         # 'forward pass', lol
         logits = self.logits[idx]
 
@@ -641,7 +638,6 @@ class CharDataset(Dataset):
 
 
 def create_datasets(input_file):
-
     # preprocessing of the input text file
     with open(input_file, "r") as f:
         data = f.read()
@@ -690,7 +686,9 @@ class InfiniteDataLoader:
     def next(self):
         try:
             batch = next(self.data_iter)
-        except StopIteration:  # this will technically only happen after 1e10 samples... (i.e. basically never)
+        except (
+            StopIteration
+        ):  # this will technically only happen after 1e10 samples... (i.e. basically never)
             self.data_iter = iter(self.train_loader)
             batch = next(self.data_iter)
         return batch
@@ -698,7 +696,6 @@ class InfiniteDataLoader:
 
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
-
     # parse command line args
     parser = argparse.ArgumentParser(description="Make More")
     # system/input/output
@@ -850,7 +847,6 @@ if __name__ == "__main__":
     best_loss = None
     step = 0
     while True:
-
         t0 = time.time()
 
         # get the next batch, ship to device, and unpack it to input and target

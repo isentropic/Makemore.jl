@@ -55,6 +55,7 @@ end
 
 function loaddatasets(filename, testsplit=0.1, toshuffle=true)
     lines = map(strip, filename |> open |> readlines)
+    lines = map(lowercase, lines)
     uniquechars = Set{Char}()
     for line in lines
         for c in line

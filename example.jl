@@ -4,7 +4,7 @@ using StatsBase
 import Makemore as M
 const Flux = M.Flux
 
-train, test = M.loaddatasets("names.txt")
+train, test = M.loaddatasets("datasets/english_names.txt")
 
 config = M.Config(blocksize=20, vocabsize=length(train.chars) + 2)
 model = M.Transformer(config)
@@ -15,7 +15,8 @@ train_loader = M.get_dataloader(train)
 
 x, y = first(train_loader)
 
-model(x)
+model(x);
+x
 mylog = M.train_model!(model, train, test, 10)
 
 M.generate(model, [1], config.vocabsize * 2)

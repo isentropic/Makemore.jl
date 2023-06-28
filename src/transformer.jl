@@ -40,7 +40,7 @@ function (m::CausalSelfAttention)(x)
     # t, headsize, nhead, b
 
     att = q ⊠ permutedims(k, [2, 1, 3, 4])
-    att = att ./ sqrt(size(k)[2])
+    att = att ./ sqrt(Float32(size(k)[2]))
     # t, t, nhead, b
 
     att = att .+ triu(fill(-Inf32, t, t), 1)
@@ -75,7 +75,6 @@ function Block(config::Config)
         Dense(4 * config.nembedding, config.nembedding)
     )
 
-    @show mlpf
     return Block(ln1, attn, ln2, mlpf, config)
 end
 
