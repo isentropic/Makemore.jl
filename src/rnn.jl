@@ -95,18 +95,3 @@ function (m::RNN)(index)
     # @show size(hidden), size(logits)
     return logits
 end
-
-function generate(model::RNN, indices, maxnewtokens; temperature=1.0)
-    # @TODO support temperature sampling
-    # RNNs do not have `blocksize`` making it easier to sample from
-    for _ in 1:maxnewtokens
-        indices = Flux.unsqueeze(indices, 2)
-        logits = model(indices)
-        probs = Flux.softmax(logits[:, end, 1])
-        nextletter = sample(Weights(probs))
-
-        indices = vcat(indices[:, 1], nextletter)
-    end
-
-    return indices
-end

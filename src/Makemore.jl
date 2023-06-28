@@ -23,7 +23,6 @@ end
 include("bigram.jl")
 include("mlp.jl")
 include("rnn.jl")
-# include("gpt.jl")
 include("bow.jl")
 include("transformer.jl")
 
@@ -91,20 +90,16 @@ function train_model!(model, train_dataset, test_dataset, maxepocs=100)
     return log
 end
 
+
 function generate(model, indices, maxnewtokens; temperature=1.0)
-    # @TODO support temperature sampling
-    if length(indices) < model.blocksize
-        indices = vcat(fill(Int(starttoken), model.blocksize - length(indices) + 1), indices)
-    end
+    maxnewtokens = model.blocksize
     for _ in 1:maxnewtokens
-        logits = model(indices[end-model.blocksize:end])[:, end] # only last is needed for bigram
-        if ndims(logits) == 3
-            logits = logits[:, :, 1]
-        end
-        probs = Flux.softmax(logits, dims=1)
+        indices = Flux.unsqueeze(indices, dims=2)
+        logits = model(indices)
+        probs = Flux.softmax(logits[:, end, 1])
         nextletter = sample(Weights(probs))
 
-        indices = vcat(indices, nextletter)
+        indices = vcat(indices[:, 1], nextletter)
     end
 
     return indices

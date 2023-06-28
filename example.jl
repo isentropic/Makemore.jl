@@ -4,14 +4,13 @@ using StatsBase
 import Makemore as M
 const Flux = M.Flux
 
-train, test = M.loaddatasets("../names.txt")
+train, test = M.loaddatasets("names.txt")
 
-config = M.Config(blocksize=50, vocabsize=length(train.chars) + 2)
-
-
-M.BoWBlock(config)
-model = M.BoW(config)
-
+config = M.Config(blocksize=20, vocabsize=length(train.chars) + 2)
+model = M.Transformer(config)
+# OR other variants like
+# M.RNN(config, "gru"); M.RNN(config, "gru")
+# M.BoW(config, "gru")
 train_loader = M.get_dataloader(train)
 
 x, y = first(train_loader)

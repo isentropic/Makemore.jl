@@ -85,7 +85,7 @@ function (m::BoW)(index)
     # 3. Average all and feed into BoWBlock
     t, b = size(index)
     @assert t <= m.blocksize
-    positions = Flux.unsqueeze(1:t, 2)
+    positions = Flux.unsqueeze(1:t, dims=2)
 
     tokemb = m.wte(index)
     posemb = m.wpe(positions)
@@ -95,21 +95,4 @@ function (m::BoW)(index)
     logits = m.lmhead(x)
 
     return logits
-end
-
-function generate(model::BoW, indices, maxnewtokens; temperature=1.0)
-    maxnewtokens = model.blocksize
-    # In BoW maxnewtokens does not exceed blocksize for simplicity of the of
-    # implementation. BoW scales cheaply with increasing blocksize as it just
-    # averages out all the previously encountered tokens
-    for _ in 1:maxnewtokens
-        indices = Flux.unsqueeze(indices, 2)
-        logits = model(indices)
-        probs = Flux.softmax(logits[:, end, 1])
-        nextletter = sample(Weights(probs))
-
-        indices = vcat(indices[:, 1], nextletter)
-    end
-
-    return indices
 end
