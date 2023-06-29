@@ -1,3 +1,4 @@
+[![Build Status](https://github.com/isentropic/Makemore.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/isentropic/Makemore.jl/actions/workflows/CI.yml?query=branch%3Amain)
 # Makemore
 This repo is a Julia rewrite of [original
 makemore](https://github.com/karpathy/makemore) primarily meant for educational
