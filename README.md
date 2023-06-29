@@ -5,9 +5,12 @@ makemore](https://github.com/karpathy/makemore) primarily meant for educational
 purposes. This repo is meant for educational purposes, modern
 optimizations to transformers or any Julia (or Flux)-specific optimizations are
 not employed.
+## What does this do?
+Auto-regressive line-by-line text generation based on the input datafile. Perfect for coming up with new baby names based on the exisiting corpus of names. Currently the tokenization is character based, hence this might not work very well with composite characters like emojis or korean/chinese/japanese and alike characters.
 ## Quickstart
-1. Clone this repo, via `Pkg.add("https://github.com/isentropic/Makemore.jl")`
-2. Run the `example.jl` script:
+1. Clone this repo
+2. Activate the provided julia environment
+3. Include the `example.jl` script - `include("example.jl")`
    ```julia
 	# Train the model
 	mylog = M.train_model!(model, train, test, 10)
