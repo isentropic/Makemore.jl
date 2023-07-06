@@ -28,12 +28,12 @@ include("transformer.jl")
 
 function loss(model, x, y)
     real = Flux.onehotbatch(y, 1:model.config.vocabsize, 1)
-    return Flux.Losses.logitbinarycrossentropy(model(x), real)
+    return Flux.Losses.logitcrossentropy(model(x), real)
 end
 
 function loss(pred, y)
     real = Flux.onehotbatch(y, 1:size(pred)[1], 1)
-    return Flux.Losses.logitbinarycrossentropy(pred, real)
+    return Flux.Losses.logitcrossentropy(pred, real)
 end
 
 function evaluate(model, dataset, maxbatches=nothing)
